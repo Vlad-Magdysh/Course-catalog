@@ -23,6 +23,7 @@
    
 ### Before starting the application, you need to initialize the database
 - **Command to initialize database**
+
   >flask init_database
   
 ### Command to run application
