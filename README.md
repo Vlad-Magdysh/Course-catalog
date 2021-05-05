@@ -30,3 +30,42 @@
    
 ### Command to run unit tests
   > python -m unittest
+
+## ENDPOINTS
+- **Add course to the database**
+  > /add-course
+  > >Parameters:
+  >  - title (str) : course title
+  >  - start_date(str) : course start date in format YYYY-MM-DD
+  >  - end_date(str) : course end date in format YYYY-MM-DD
+  >  - lectures (int) : number of course lectures
+  
+- **Get a list of course titles**
+  > /get-titles-courses
+  > >Parameters:
+  > - None
+
+- **Get a course from the database by unique id**
+  > /get-course
+  > >Parameters:
+  >  - id (int) : course unique id
+  
+- **Search for a course by title in a specified date range**
+  > /get-filtered-courses
+  > >Parameters:
+  >  - title (str) : course title
+  >  - start_date(str) : course start date in format YYYY-MM-DD
+  >  - end_date(str) : course end date in format YYYY-MM-DD
+  
+- **Update course attributes by the unique ID**
+  > /change-attributes
+  > >Parameters:
+  >  - title (str) : course title
+  >  - start_date(str) : course start date in format YYYY-MM-DD
+  >  - end_date(str) : course end date in format YYYY-MM-DD
+  >  - lectures (int) : number of course lectures
+  
+- **Delete a course from the database by unique id**
+  > /delete-course
+  > >Parameters:
+  >  - id (int) : course unique id
