@@ -3,23 +3,29 @@ from datetime import datetime as date
 import os
 from flask import Flask, g, request
 from flask_restful import Resource, Api
+from utils.db_utils import dict_factory
 
 DATABASE = 'database.db'
 DEBUG = True
 SECRET_KEY = b'\xa7\xf9\x85\xac \x85\xccL\xeb\xb8\xcd\xcb\xe7Ey\xeb\xc1\xa2~E'
 
+# Create the application instance
 app = Flask(__name__)
 app.config.from_object(__name__)
 api = Api(app)
 
+# Update configs (database path) of the current system
 app.config.update(
     DATABASE=os.path.join(app.root_path, 'database.db')
 )
 
-print(app.config['DATABASE'])
 
-
+@app.cli.command('init_database')
 def init_db():
+    """
+    Initializes a database from a script "scheme.sql".
+    :return: None
+    """
     with app.app_context():
         db = get_db()
         with app.open_resource('schema.sql', mode='r') as f:
@@ -27,14 +33,12 @@ def init_db():
         db.commit()
 
 
-def dict_factory(cursor, row):
-    d = {}
-    for idx, col in enumerate(cursor.description):
-        d[col[0]] = row[idx]
-    return d
-
-
 def get_db():
+    """
+    Return the connection if it exists in the application context,
+    else - connects to the database, writes to application context and then return connection
+    :return: Connection - SQLite database connection object
+    """
     if not hasattr(g, 'sqlite_db'):
         g.sqlite_db = sqlite3.connect(app.config['DATABASE'])
         g.sqlite_db.row_factory = dict_factory
@@ -43,6 +47,11 @@ def get_db():
 
 @app.teardown_appcontext
 def close_db(self):
+    """
+    When the application context dies - close the connection to the database if it exist.
+    (usually at the end of the request)
+    :return: None
+    """
     if hasattr(g, 'sqlite_db'):
         print('db closed')
         g.sqlite_db.close()
@@ -50,13 +59,23 @@ def close_db(self):
 
 class AddCourse(Resource):
     def post(self):
+        """
+        Add a new course to the database.
+        :parameter
+        title (str) : course title
+        start_date(str) : course start date in format YYYY-MM-DD
+        end_date(str) : course end date in format YYYY-MM-DD
+        lectures (int) : number of course lectures
+        :return: Successful result: Message and HTTP code 200.
+                    Otherwise: message about error and HTTP code 404.
+        """
         title = request.json['title']
 
         try:
             start_date = date.strptime(request.json['start_date'], "%Y-%m-%d")
             end_date = date.strptime(request.json['end_date'], "%Y-%m-%d")
         except ValueError:
-            return {"Error": "This is the incorrect date string format. It should be YYYY-MM-DD"}, 400
+            return {"message": "This is the incorrect date string format. It should be YYYY-MM-DD"}, 400
 
         lectures = int(request.json['lectures'])
         db_cursor = get_db().cursor()
@@ -69,11 +88,15 @@ class AddCourse(Resource):
         )
         get_db().commit()
 
-        return {"Message": "Course added successfully"}, 200
+        return {"message": "Course added successfully"}, 200
 
 
 class CoursesList(Resource):
     def get(self):
+        """
+        Return list of all course titles
+        :return: 'titles': list of course titles and HTTP code 200.
+        """
         db_cursor = get_db().cursor()
         db_cursor.execute(
             """
@@ -86,6 +109,13 @@ class CoursesList(Resource):
 
 class GetCourseById(Resource):
     def get(self):
+        """
+        Return a course with the specified id
+        :parameter
+        id (int) : course unique id
+        :return: Successful result: dict with an information about course and HTTP code 200.
+                    Otherwise: message about error and HTTP code 404.
+        """
         db_cursor = get_db().cursor()
         db_cursor.execute(
             """
@@ -99,20 +129,28 @@ class GetCourseById(Resource):
         if result := db_cursor.fetchone():
             return result, 200
 
-        return {"Error": "Course with this id was not found"}, 404
+        return {"message": "Course with this id was not found"}, 404
 
 
 class GetFilteredCourses(Resource):
     def get(self):
-
+        """
+        Return a course with the specified title and date range [start_date, end_date]
+        :parameter
+        title (str) : course title
+        start_date(str) : start of date range in format YYYY-MM-DD
+        end_date(str) : end of date range in format YYYY-MM-DD
+        :return: Successful result: dictionaries with information about filtered courses and HTTP code 200.
+                    Otherwise: message about error and HTTP code 404.
+        """
         try:
             start_date = date.strptime(request.json['start_date'], "%Y-%m-%d")
             end_date = date.strptime(request.json['end_date'], "%Y-%m-%d")
         except ValueError:
-            return {"Error": "This is the incorrect date string format. It should be YYYY-MM-DD"}, 400
+            return {"Message": "This is the incorrect date string format. It should be YYYY-MM-DD"}, 400
 
         if start_date >= end_date:
-            return {"Error": "The start_date is greater than the end_date"}, 400
+            return {"Message": "The start_date is greater than the end_date"}, 400
 
         db_cursor = get_db().cursor()
         db_cursor.execute(
@@ -141,7 +179,18 @@ class GetFilteredCourses(Resource):
 
 class ChangeCourseAttributes(Resource):
     def put(self):
-
+        """
+        Change course attributes: title, start date, end date, number of lectures
+        Change the values that it find in the request.
+        It is not necessary to enter all parameters.
+        :parameter
+        title (str) : course title
+        start_date(str) : course start date in format YYYY-MM-DD
+        end_date(str) : course end date in format YYYY-MM-DD
+        lectures (int) : number of course lectures
+        :return: Successful result: message and HTTP code 200.
+                    Otherwise: message about error and HTTP code 404.
+        """
         db_cursor = get_db().cursor()
         db_cursor.execute(
             """
@@ -208,7 +257,13 @@ class ChangeCourseAttributes(Resource):
 
 class DeleteCourse(Resource):
     def delete(self):
-
+        """
+        Delete a course with the specified id
+        :parameter
+        id (int) : course unique id
+        :return: Successful result: message and HTTP code 200.
+                    Otherwise: message about error and HTTP code 404.
+        """
         course_id = request.json['id']
 
         db_cursor = get_db().cursor()
