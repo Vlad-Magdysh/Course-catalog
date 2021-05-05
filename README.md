@@ -1,6 +1,6 @@
 # Course-catalog
 ## Python/Flask REST API for Yalantis
-### Steps to setup the project
+### Steps to set up the project
 - Select the folder where to clone repository
 - Clone the repository 
   >git clone https://github.com/Vlad-Magdysh/Course-catalog.git
@@ -27,3 +27,6 @@
   
 ### Command to run application
   > flask run
+   
+### Command to run unit tests
+  > python -m unittest
